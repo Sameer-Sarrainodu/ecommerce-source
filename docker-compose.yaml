@@ -32,7 +32,7 @@ services:
       - roboshop
 
   mysql:
-    image: mysql:8
+    image: mysql:5.7
     container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: RoboShop@1
