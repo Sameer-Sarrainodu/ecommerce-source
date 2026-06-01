@@ -1,5 +1,5 @@
 # --- Stage 1: Build the application ---
-# Changed from 1.22 or 1.24 to 1.26-alpine
+# Changed to 1.26-alpine to match your go.mod requirement
 FROM golang:1.26-alpine AS builder
 
 # Set the current working directory inside the container
