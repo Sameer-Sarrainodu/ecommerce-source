@@ -1,6 +1,6 @@
 module dispatch
 
-go 1.26.3
+go 1.24
 
 require (
 	github.com/opentracing/opentracing-go v1.2.0

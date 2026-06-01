@@ -1,27 +1,24 @@
-# --- Stage 1: Build the application ---
-# Changed to 1.26-alpine to match your go.mod requirement
-FROM golang:1.26-alpine AS builder
+# --- Stage 1: Build Stage ---
+FROM golang:1.24-alpine AS builder
 
-# Set the current working directory inside the container
 WORKDIR /app
 
-# Copy go mod and sum files to cache dependencies
+# Copy dependency files first
 COPY go.mod go.sum ./
-
-# Download all dependencies (Go modules)
 RUN go mod download
 
-# Copy the rest of the source code
+# Copy application source code
 COPY . .
 
-# Build the Go app
+# Statically compile the binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dispatch main.go
 
-# --- Stage 2: Final lightweight runtime ---
+# --- Stage 2: Runtime Stage ---
 FROM alpine:3.19
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
+
 COPY --from=builder /app/dispatch .
 USER appuser
 
