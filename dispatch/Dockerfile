@@ -1,5 +1,6 @@
 # --- Stage 1: Build the application ---
-FROM golang:1.22-alpine AS builder
+# Changed from 1.22 or 1.24 to 1.26-alpine
+FROM golang:1.26-alpine AS builder
 
 # Set the current working directory inside the container
 WORKDIR /app
@@ -13,22 +14,15 @@ RUN go mod download
 # Copy the rest of the source code
 COPY . .
 
-# Build the Go app statically linked for a Linux container
-RUN CGO_ENABLED=0 GOOS=linux go build -o dispatch .
+# Build the Go app
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dispatch main.go
 
 # --- Stage 2: Final lightweight runtime ---
 FROM alpine:3.19
 
-# Add a non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
 WORKDIR /app
-
-# Copy the pre-built binary from the builder stage
 COPY --from=builder /app/dispatch .
-
-# Use the non-root user to run the application
 USER appuser
 
-# Command to run the executable
 CMD ["./dispatch"]
