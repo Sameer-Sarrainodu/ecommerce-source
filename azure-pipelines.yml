@@ -1,0 +1,50 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: github-pat
+  - name: imageName
+    value: catalogue
+  - name: acrName
+    value: sameerroboshopacr.azurecr.io
+
+stages:
+  - stage: BuildAndPush
+    jobs:
+      - job: Docker
+        steps:
+          - checkout: self
+
+          - task: Docker@2
+            displayName: Build and Push Image
+            inputs:
+              containerRegistry: sameerroboshopacr
+              repository: catalogue
+              command: buildAndPush
+              Dockerfile: catalogue/Dockerfile
+              tags: |
+                $(Build.BuildId)
+
+  - stage: UpdateGitOps
+    dependsOn: BuildAndPush
+    jobs:
+      - job: UpdateManifest
+        steps:
+          - checkout: none
+
+          - script: |
+              git clone https://$(GITHUB_TOKEN)@github.com/Sameer-Sarrainodu/ecommerce-gitops.git
+              cd ecommerce-gitops
+              sed -i "s/tag:.*/tag: $(Build.BuildId)/" helm/catalogue/values.yaml
+              git config user.email "azuredevops@local"
+              git config user.name "azure-pipeline"
+              git add helm/catalogue/values.yaml
+              git commit -m "catalogue image $(Build.BuildId)"
+              git push
+            env:
+              GITHUB_TOKEN: $(GITHUB_TOKEN)
