@@ -8,43 +8,74 @@ pool:
 
 variables:
   - group: github-pat
-  - name: imageName
-    value: catalogue
-  - name: acrName
-    value: sameerroboshopacr.azurecr.io
+
+parameters:
+  - name: service
+    displayName: Service Name
+    type: string
+    default: catalogue
+    values:
+      - catalogue
+      - frontend
+      - cart
+      - user
+      - payment
+      - shipping
 
 stages:
+
   - stage: BuildAndPush
+    displayName: Build and Push Image
+
     jobs:
-      - job: Docker
+
+      - job: Build
+
         steps:
+
           - checkout: self
 
           - task: Docker@2
-            displayName: Build and Push Image
+            displayName: Build and Push Docker Image
+
             inputs:
               containerRegistry: sameerroboshopacr
-              repository: catalogue
+              repository: ${{ parameters.service }}
               command: buildAndPush
-              Dockerfile: catalogue/Dockerfile
+              Dockerfile: '${{ parameters.service }}/Dockerfile'
+
               tags: |
                 $(Build.BuildId)
 
   - stage: UpdateGitOps
+    displayName: Update GitOps Repository
+
     dependsOn: BuildAndPush
+
     jobs:
+
       - job: UpdateManifest
+
         steps:
+
           - checkout: none
 
           - script: |
+
               git clone https://$(GITHUB_TOKEN)@github.com/Sameer-Sarrainodu/ecommerce-gitops.git
+
               cd ecommerce-gitops
-              sed -i "s/tag:.*/tag: $(Build.BuildId)/" helm/catalogue/values.yaml
+
+              sed -i "s/tag:.*/tag: $(Build.BuildId)/" helm/${{ parameters.service }}/values.yaml
+
               git config user.email "azuredevops@local"
               git config user.name "azure-pipeline"
-              git add helm/catalogue/values.yaml
-              git commit -m "catalogue image $(Build.BuildId)"
+
+              git add helm/${{ parameters.service }}/values.yaml
+
+              git commit -m "${{ parameters.service }} image $(Build.BuildId)"
+
               git push
+
             env:
               GITHUB_TOKEN: $(GITHUB_TOKEN)
